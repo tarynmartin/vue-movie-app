@@ -1,9 +1,17 @@
 <script setup>
-import TheWelcome from '../components/TheWelcome.vue'
+// need to import card component
+// get data on load
+import InputComponent from '../components/input/InputComponent.vue'
+import { ref } from 'vue'
+
+const search = ref('');
 </script>
 
 <template>
-  <main>
-    <TheWelcome />
-  </main>
+  <InputComponent placeholder="Search..." v-model="search"/>
+    <!-- <card /> -->
 </template>
+
+<style scoped>
+
+</style>
