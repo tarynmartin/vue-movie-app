@@ -4,6 +4,7 @@
 import axios from 'axios';
 import { ref, watch } from 'vue';
 import InputComponent from '../components/input/InputComponent.vue';
+import Card from '../components/Card/Card.vue';
 
 const search = ref('');
 const releases = ref([]);
@@ -33,10 +34,24 @@ watch(search, async() => {
 </script>
 
 <template>
-  <InputComponent placeholder="Search..." v-model="search"/>
-    <!-- <card /> -->
+  <div>
+    <InputComponent placeholder="Search..." v-model="search"/>
+  <div class="cardsContainer">
+    <Card v-for="release in releases" :key="release.id" :data="release" />
+  </div>
+  </div>
 </template>
 
 <style scoped>
+  div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 
+  .cardsContainer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 </style>
