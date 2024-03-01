@@ -1,4 +1,5 @@
 <script setup>
+import { formatDate } from '@/helpers.js';
   defineProps({
     data: {
       type: Object,
@@ -9,12 +10,6 @@
     }
   })
 
-  // update the date format based on the user's region
-  const formatDate = (date) => {
-    const newDate = new Date(date);
-    return newDate.toLocaleDateString();
-  }
-
   const formatMediaType = (mediaType) => {
     switch(mediaType) {
       case 'movie':
@@ -22,11 +17,13 @@
       case 'tv_series':
         return 'TV Series: ';
       case 'tv_miniseries':
-        return 'TV Miniseries';
+        return 'TV Miniseries: ';
       case 'tv_special':
         return 'TV Special';
       case 'short_film':
         return 'Short Film';
+      case 'person':
+        return 'Person';
       default:
         return 'Unknown';
     }
@@ -36,10 +33,17 @@
 <template>
   <div class="cardContainer">
     <img v-if=data.poster_url :src=data.poster_url alt="movie poster" class="cardPoster" />
-    <img v-else :src="'@/assets/placeholder.png'" alt="placeholder" class="cardPoster" />
-    <h1 class="cardTitle">{{ data.title }}</h1>
-    <h2 class="cardMediaType">{{ formatMediaType(data.type) }}<span v-if="data.season_number">Season {{ data.season_number }}</span></h2>
-    <p class="cardDate"><span class="cardReleased">Release:</span> {{ formatDate(data.source_release_date) }}</p>
+    <img v-else :src="'http://placekitten.com/250/350'" alt="placeholder" class="cardPoster" />
+    <h2 class="cardTitle">{{ data.title || data.name }}</h2>
+    <div v-if=data.source_release_date>
+      <h3 class="cardMediaType">{{ formatMediaType(data.type) }}<span v-if=data.season_number>Season {{ data.season_number }}</span></h3>
+      <p v-if="new Date().toLocaleString() < formatDate(data.source_release_date)" class="cardDate"><span class="cardReleased">Release:</span> {{ formatDate(data.source_release_date) }}</p>
+      <p v-else class="mediaAvailable">Available to Watch</p>
+    </div>
+    <div v-else>
+      <h3 class="cardMediaType">{{ data.type ? formatMediaType(data.type) : data.main_profession }}</h3>
+      <span v-if=data.year class="cardYear">Year: {{ data.year }}</span>
+    </div>
   </div>
 </template>
 
@@ -71,7 +75,9 @@
     text-align: center;
   }
 
-  .cardMediaType {
+  .cardMediaType,
+  .cardDate,
+  .cardYear {
     font-size: 0.8rem;
     margin-bottom: 0.25rem;
     text-align: center;
@@ -81,10 +87,10 @@
     font-weight: 500;
   }
 
-  .cardDate {
-    font-size: 0.8rem;
-    margin-bottom: 0.25rem;
-    text-align: center;
+  .mediaAvailable {
+    color: darkred;
+    font-size: 1rem;
+    font-weight: 500;
   }
 
 </style>
