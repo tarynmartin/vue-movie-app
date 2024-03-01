@@ -1,4 +1,5 @@
 <script setup>
+import { useRouter, useRoute } from 'vue-router';
 import { formatDate } from '@/helpers.js';
   defineProps({
     data: {
@@ -9,6 +10,9 @@ import { formatDate } from '@/helpers.js';
       }
     }
   })
+
+  const router = useRouter();
+  const route = useRoute();
 
   const formatMediaType = (mediaType) => {
     switch(mediaType) {
@@ -31,7 +35,7 @@ import { formatDate } from '@/helpers.js';
 </script>
 
 <template>
-  <div class="cardContainer">
+  <div class="cardContainer" @click="router.push({ name: 'media-details', query: { ...route.query, ...data.id}})">
     <img v-if=data.poster_url :src=data.poster_url alt="movie poster" class="cardPoster" />
     <img v-else :src="'http://placekitten.com/250/350'" alt="placeholder" class="cardPoster" />
     <h2 class="cardTitle">{{ data.title || data.name }}</h2>
