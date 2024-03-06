@@ -32,10 +32,15 @@ import { formatDate } from '@/helpers.js';
         return 'Unknown';
     }
   }
+
+  const handleCardClick = (data) => {
+    // add conditional if it's an actor
+    router.push({ name: 'media-details', params: { ...route.query, id: data.id}});
+  }
 </script>
 
 <template>
-  <div class="cardContainer" @click="router.push({ name: 'media-details', query: { ...route.query, ...data.id}})">
+  <div class="cardContainer" @click=handleCardClick(data)>
     <img v-if=data.poster_url :src=data.poster_url alt="movie poster" class="cardPoster" />
     <img v-else :src="'http://placekitten.com/250/350'" alt="placeholder" class="cardPoster" />
     <h2 class="cardTitle">{{ data.title || data.name }}</h2>

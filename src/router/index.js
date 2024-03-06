@@ -14,7 +14,7 @@ const router = createRouter({
       path: '/media/:id',
       name: 'media-details',
       component: DetailsView
-    }
+    },
     {
       path: '/about',
       name: 'about',
