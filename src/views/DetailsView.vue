@@ -81,7 +81,7 @@ const formatType = (type) => {
     <h2 class="detailsTitle">{{ formatHeader() }}</h2>
     <img v-if=details.poster :src=details.poster alt="movie poster" class="mediaPoster" />
     <img v-else :src="'http://placekitten.com/250/350'" alt="placeholder" class="cardPoster" />
-    <div>
+    <div v-if="seasons.length">
       <!-- TODO: add link for each season to get season & episode info -->
       <span v-for="(season, index) in seasons" :key="season.id">{{ `${season.name}${index < seasons.length - 1 ? ', ' : ''}` }}</span>
     </div>
