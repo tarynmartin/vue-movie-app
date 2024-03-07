@@ -37,6 +37,11 @@ import { formatDate } from '@/helpers.js';
     // add conditional if it's an actor
     router.push({ name: 'media-details', params: { ...route.query, id: data.id}});
   }
+
+  const checkDate = (date) => {
+    // TODO: need to get a date library
+    return new Date().toLocaleDateString() > formatDate(date)
+  }
 </script>
 
 <template>
@@ -46,7 +51,7 @@ import { formatDate } from '@/helpers.js';
     <h2 class="cardTitle">{{ data.title || data.name }}</h2>
     <div v-if=data.source_release_date>
       <h3 class="cardMediaType">{{ formatMediaType(data.type) }}<span v-if=data.season_number>Season {{ data.season_number }}</span></h3>
-      <p v-if="new Date().toLocaleString() < formatDate(data.source_release_date)" class="cardDate"><span class="cardReleased">Release:</span> {{ formatDate(data.source_release_date) }}</p>
+      <p v-if="!checkDate(data.source_release_date)" class="cardDate"><span class="cardReleased">Release:</span> {{ formatDate(data.source_release_date) }}</p>
       <p v-else class="mediaAvailable">Available to Watch</p>
     </div>
     <div v-else>
