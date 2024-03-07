@@ -7,19 +7,22 @@ import { formatDate } from '@/helpers.js';
 const route = useRoute();
 const details = ref({});
 const streamingSources = ref({});
+const seasons = ref([]);
 
-// TODO: add error handling, add icons for streaming services, add season listings to tv shows?
+// TODO: add error handling, add icons for streaming services
 
 watch(route.params.id, async () => {
   const requests = [axios.get('http://localhost:5000', { params: { endpoint: `title/${route.params.id}/details` } }), axios.get('http://localhost:5000', { params: { endpoint: `title/${route.params.id}/sources` } })]
   try {
     const response = await Promise.all(requests);
 
-    details.value = response[0].data;
+    if (response[0].data.type.includes('tv')) {
+      getSeasons()
+    }
+
     // TODO: update based on user's region
     const regionStreamingSources = response[1].data.filter(source => source.region === 'US');
 
-    // if tv_show, get seasons from title/id/seasons/ endpoint
     const splitSources = regionStreamingSources.reduce((acc, source) => {
       if (!acc[source.name]) {
         acc[source.name] = [source];
@@ -31,11 +34,22 @@ watch(route.params.id, async () => {
       return acc;
     }, {});
 
+    details.value = response[0].data;
     streamingSources.value = splitSources;
   } catch (e) {
     console.error(e);
   }
 }, { immediate: true });
+
+const getSeasons = async () => {
+  try {
+    const tvSeasons = await axios.get('http://localhost:5000', { params: { endpoint: `title/${route.params.id}/seasons` } });
+
+    seasons.value = tvSeasons.data;
+  } catch (e) {
+    console.error(e);
+  }
+}
 
 const formatHeader = () => {
   if (details.value.type === 'movie') {
@@ -45,13 +59,10 @@ const formatHeader = () => {
   }
 }
 
-const showStreamingOptions = () => {
-  return Object.keys(streamingSources.value);
-}
-
 const formatRuntime = (minutes) => {
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
+  
   return `${ hours > 0 ? `${hours} hour${hours > 1 ? 's' : ''}` : ''} ${remainingMinutes} minutes`;
 }
 
@@ -63,7 +74,6 @@ const formatType = (type) => {
   }
   return type;
 }
-
 </script>
 
 <template>
@@ -71,19 +81,25 @@ const formatType = (type) => {
     <h2 class="detailsTitle">{{ formatHeader() }}</h2>
     <img v-if=details.poster :src=details.poster alt="movie poster" class="mediaPoster" />
     <img v-else :src="'http://placekitten.com/250/350'" alt="placeholder" class="cardPoster" />
+    <div>
+      <!-- TODO: add link for each season to get season & episode info -->
+      <span v-for="(season, index) in seasons" :key="season.id">{{ `${season.name}${index < seasons.length - 1 ? ', ' : ''}` }}</span>
+    </div>
     <div v-if="Object.values(streamingSources).flat().length">
       <h3 class="detailsSubheader">Streaming Sources</h3>
-      <div v-for="source in showStreamingOptions()" :key="source">
-        <div v-if="streamingSources[source].length" class="streamingInfo">
-          <h4 class="streamingTitle">{{ source }}:</h4>
-          <a v-for="streamingOption in streamingSources[source]" :key="streamingOption.source_id" :href=streamingOption.web_url target="_blank" class="streamingLink">{{ formatType(streamingOption.type) }} {{ streamingOption.format }} {{ streamingOption.price ? `($${streamingOption.price})` : ''}}</a>
+      <div class="streamingContainer">
+        <div v-for="source in Object.keys(streamingSources)" :key="source" >
+          <div v-if="streamingSources[source].length" class="streamingInfo">
+            <h4 class="streamingTitle">{{ source }}:</h4>
+            <a v-for="streamingOption in streamingSources[source]" :key="streamingOption.source_id" :href=streamingOption.web_url target="_blank" class="streamingLink">{{ formatType(streamingOption.type) }} {{ streamingOption.format }} {{ streamingOption.price ? `($${streamingOption.price})` : ''}}</a>
+          </div>
         </div>
       </div>
     </div>
-    <p><span class="detailsSubheader">Synopsis: </span> {{ details.plot_overview }}</p>
-    <p><span class="detailsSubheader">Runtime: </span>{{ formatRuntime(details.runtime_minutes) }}</p>
-    <p><span class="detailsSubheader">Release Date: </span>{{ formatDate(details.release_date) }}</p>
-    <p><span class="detailsSubheader">Genres: </span><span v-for="(genre, index) in details.genre_names" :key="genre">{{ genre }}{{ index < (details.genre_names.length - 1) ? ', ' : '' }}</span></p>
+    <div v-if="details?.plot_overview"><span class="detailsSubheader">Synopsis: </span> {{ details.plot_overview }}</div>
+    <div v-if="details?.runtime_minutes"><span class="detailsSubheader">Runtime: </span>{{ formatRuntime(details.runtime_minutes) }}</div>
+    <div v-if="details?.release_date"><span class="detailsSubheader">Release Date: </span>{{ formatDate(details.release_date) }}</div>
+    <div v-if="details?.genre_names?.length"><span class="detailsSubheader">Genres: </span><span v-for="(genre, index) in details.genre_names" :key="genre">{{ genre }}{{ index < (details.genre_names.length - 1) ? ', ' : '' }}</span></div>
   </div>
 </template>
 
@@ -111,6 +127,13 @@ const formatType = (type) => {
   .streamingTitle {
     font-weight: 500;
     text-transform: capitalize;
+  }
+
+  .streamingContainer {
+    display: flex;
+    flex-flow: wrap;
+    /* align-items: center; */
+    gap: 0.5rem;
   }
 
   .streamingInfo {
