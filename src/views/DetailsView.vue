@@ -2,12 +2,13 @@
 import axios from 'axios';
 import { ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { formatDate } from '@/helpers.js';
 
 const route = useRoute();
 const details = ref({});
 const streamingSources = ref({});
 
-// TODO: add error handling, add icons for streaming services, icons for streaming sources, add season listings to tv shows?
+// TODO: add error handling, add icons for streaming services, add season listings to tv shows?
 
 watch(route.params.id, async () => {
   const requests = [axios.get('http://localhost:5000', { params: { endpoint: `title/${route.params.id}/details` } }), axios.get('http://localhost:5000', { params: { endpoint: `title/${route.params.id}/sources` } })]
@@ -18,25 +19,17 @@ watch(route.params.id, async () => {
     // TODO: update based on user's region
     const regionStreamingSources = response[1].data.filter(source => source.region === 'US');
 
-    console.log(response[0].data)
     // if tv_show, get seasons from title/id/seasons/ endpoint
-
     const splitSources = regionStreamingSources.reduce((acc, source) => {
-      if (source.type === 'free') {
-        acc.free.push(source);
-      } else if (source.type === 'buy') {
-        if (source.format === 'HD') {
-          acc.buyHD.push(source);
-        } else {
-          acc.buy.push(source);
-        }
-      } else if (source.type === 'rent') {
-        acc.rent.push(source);
+      if (!acc[source.name]) {
+        acc[source.name] = [source];
       } else {
-        acc.stream.push(source);
+        const findDuplicates = acc[source.name].find(item => item.format === source.format);
+        if (!findDuplicates)
+          acc[source.name].push(source);
       }
       return acc;
-    }, { free: [], buy: [], buyHD: [], rent: [], stream: [] });
+    }, {});
 
     streamingSources.value = splitSources;
   } catch (e) {
@@ -48,10 +41,29 @@ const formatHeader = () => {
   if (details.value.type === 'movie') {
     return `${details.value.title}: ${details.value.year}`;
   } else {
-    return `${details.value.title}: (${details.value.year}) - ${details.value.end_year ? details.value.end_year : 'Present'}`;
+    return `${details.value.title}: ${details.value.year} - ${details.value.end_year ? details.value.end_year : 'Present'}`;
   }
-
 }
+
+const showStreamingOptions = () => {
+  return Object.keys(streamingSources.value);
+}
+
+const formatRuntime = (minutes) => {
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return `${ hours > 0 ? `${hours} hour${hours > 1 ? 's' : ''}` : ''} ${remainingMinutes} minutes`;
+}
+
+const formatType = (type) => {
+  if (type === 'sub') {
+    return '';
+  } else if (type === 'tve') {
+    return 'TV App'
+  }
+  return type;
+}
+
 </script>
 
 <template>
@@ -61,31 +73,16 @@ const formatHeader = () => {
     <img v-else :src="'http://placekitten.com/250/350'" alt="placeholder" class="cardPoster" />
     <div v-if="Object.values(streamingSources).flat().length">
       <h3 class="detailsSubheader">Streaming Sources</h3>
-      <!-- REFACTOR, can be dynamic -->
-      <div v-if="streamingSources.free.length" class="streamingInfo">
-        <p>Free:</p>
-        <a v-for="source in streamingSources.free" :key="source.id" :href=source.web_url target="_blank">{{ source.name }}</a>
-      </div>
-      <div v-if="streamingSources.stream.length" class="streamingInfo">
-        <p>Stream:</p>
-        <a v-for="source in streamingSources.stream" :key="source.id" :href=source.web_url target="_blank">{{ source.name }}</a>
-      </div>
-      <div v-if="streamingSources.buy.length" class="streamingInfo">
-        <p>Buy SD:</p>
-        <a v-for="source in streamingSources.buy" :key="source.id" :href=source.web_url target="_blank">{{ source.name }}</a>
-      </div>
-      <div v-if="streamingSources.buyHD.length" class="streamingInfo">
-        <p>Buy HD:</p>
-        <a v-for="source in streamingSources.buyHD" :key="source.id" :href=source.web_url target="_blank">{{ source.name }}</a>
-      </div>
-      <div v-if="streamingSources.rent.length" class="streamingInfo">
-        <p>Rent:</p>
-        <a v-for="source in streamingSources.rent" :key="source.id" :href=source.web_url target="_blank">{{ source.name }}</a>
+      <div v-for="source in showStreamingOptions()" :key="source">
+        <div v-if="streamingSources[source].length" class="streamingInfo">
+          <h4 class="streamingTitle">{{ source }}:</h4>
+          <a v-for="streamingOption in streamingSources[source]" :key="streamingOption.source_id" :href=streamingOption.web_url target="_blank" class="streamingLink">{{ formatType(streamingOption.type) }} {{ streamingOption.format }} {{ streamingOption.price ? `($${streamingOption.price})` : ''}}</a>
+        </div>
       </div>
     </div>
     <p><span class="detailsSubheader">Synopsis: </span> {{ details.plot_overview }}</p>
-    <p><span class="detailsSubheader">Runtime: </span>{{ details.runtime_minutes }} minutes</p>
-    <p><span class="detailsSubheader">Release Date: </span>{{ details.release_date }}</p>
+    <p><span class="detailsSubheader">Runtime: </span>{{ formatRuntime(details.runtime_minutes) }}</p>
+    <p><span class="detailsSubheader">Release Date: </span>{{ formatDate(details.release_date) }}</p>
     <p><span class="detailsSubheader">Genres: </span><span v-for="(genre, index) in details.genre_names" :key="genre">{{ genre }}{{ index < (details.genre_names.length - 1) ? ', ' : '' }}</span></p>
   </div>
 </template>
@@ -108,6 +105,12 @@ const formatHeader = () => {
 
   .detailsSubheader {
     font-weight: 600;
+    text-align: center;
+  }
+
+  .streamingTitle {
+    font-weight: 500;
+    text-transform: capitalize;
   }
 
   .streamingInfo {
@@ -115,6 +118,10 @@ const formatHeader = () => {
     flex-direction: row;
     align-items: center;
     gap: 0.5rem;
+  }
+
+  .streamingLink {
+    text-transform: capitalize;
   }
 
   .mediaPoster {
