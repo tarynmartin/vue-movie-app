@@ -76,6 +76,10 @@ import { formatDate } from '@/helpers.js';
     justify-content: space-between;
   }
 
+  .cardContainer:hover {
+    cursor: pointer;
+  }
+
   .cardPoster {
     width: 100%;
     border-radius: 15px;
